@@ -8,24 +8,6 @@ class Session(requests.Session):
         self.delay = delay
         self.timestamp = -delay
 
-    def post(self, *args, **kwargs):
-        while clock() - self.timestamp < self.delay:
-            pass
-
-        self.timestamp = clock()
-        response = super().post(*args, **kwargs)
-        response.raise_for_status()
-        return response
-
-    def get(self, *args, **kwargs):
-        while clock() - self.timestamp < self.delay:
-            pass
-
-        self.timestamp = clock()
-        response = super().get(*args, **kwargs)
-        response.raise_for_status()
-        return response
-
     def get_request(self, method, url, data=None, headers=None, cookies=None):
         req_options = {
             'method': method.upper(),
@@ -47,8 +29,15 @@ class Session(requests.Session):
         request = requests.Request(**req_options)
         return self.prepare_request(request)
 
-    # def send(self, request, **kwargs):
-    #     print('request:', request.url)
-    #     response = super().send(request, **kwargs)
-    #     print('response:', response.url)
-    #     return response
+    def send(self, request, **kwargs):
+        """
+        Add a delay to all requests so we're not spamming okcupid servers.
+        Raise exception on unsuccessul status
+        """
+        while clock() - self.timestamp < self.delay:
+            pass
+
+        self.timestamp = clock()
+        response = super().send(request, **kwargs)
+        response.raise_for_status()
+        return response
