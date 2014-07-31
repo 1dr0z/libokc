@@ -26,5 +26,5 @@ class User(object):
         if response.url == 'https://www.okcupid.com/login':
             raise AuthenticationError('Could not log in with the credentials provided')
 
-    def favorites(self, *args, **kwargs):
-        return self._favorites.iter(*args, **kwargs)
+    def favorites(self, **kwargs):
+        return self._favorites.iter(**kwargs)
