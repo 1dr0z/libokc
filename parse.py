@@ -215,3 +215,48 @@ class Questions(PaginatedPage):
             'explanation_target': t_explanation,
             'explanation_viewer': v_explanation,
         }
+
+    def iter(self, **kwargs):
+        """
+        Parameters
+        -----------
+        i_care: boolean
+            Questions that the user cares about
+
+        they_care: boolean
+            Questions that the target profile cares about
+
+        disagree: boolean
+            Questions in conflict between user and target
+
+        unanswered: boolean
+            Questions answered by target but not user
+
+        notes: boolean
+            Questions with explanations
+
+        Sex: boolean
+            Questions about sex
+
+        Dating: boolean
+            Questions about dating
+
+        Lifestyle: boolean
+            Questions about lifestyle
+
+        Ethics: boolean
+            Questions about ethics
+
+        Religion: boolean
+            Questions about religion
+
+        Other:
+            Questions about other categories
+        """
+
+        # Translate 'they_care' into the correct param based on gender
+        if 'they_care' in kwargs:
+            del kwargs['they_care']
+            kwargs['he_care' if self._user.gender == 'M' else 'she_care'] = True
+
+        return super().iter(**kwargs)
