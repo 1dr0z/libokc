@@ -192,6 +192,8 @@ class Questions(PaginatedPage):
 
         t_answer = None
         v_answer = None
+        t_acceptable = None
+        v_acceptable = None
         t_explanation = None
         v_explanation = None
 
@@ -199,9 +201,13 @@ class Questions(PaginatedPage):
             answer_elems  = self.find_by_class(element, 'answers')
             answer_target = self.find_by_class(answer_elems, 'target')
             answer_viewer = self.find_by_class(answer_elems, 'viewer')
+            t_elem = self.find_by_class(answer_target, 'text')
+            v_elem = self.find_by_class(answer_viewer, 'text')
 
-            t_answer = self.find_by_class(answer_target, 'text').text.strip()
-            v_answer = self.find_by_class(answer_viewer, 'text').text.strip()
+            t_answer = t_elem.text.strip()
+            v_answer = v_elem.text.strip()
+            t_acceptable = not self.element_has_class(t_elem, 'not_accepted')
+            v_acceptable = not self.element_has_class(v_elem, 'not_accepted')
             t_explanation = self.find_by_class(answer_target, 'note').text.strip()
             v_explanation = self.find_by_class(answer_viewer, 'note').text.strip()
 
@@ -212,6 +218,8 @@ class Questions(PaginatedPage):
             'public': is_public,
             'answer_target': t_answer,
             'answer_viewer': v_answer,
+            'acceptable_target': t_acceptable,
+            'acceptable_viewer': v_acceptable,
             'explanation_target': t_explanation,
             'explanation_viewer': v_explanation,
         }
@@ -262,4 +270,4 @@ class Questions(PaginatedPage):
         # OkCupid uses integer values
         kwargs = {k: int(v) for k, v in kwargs.items()}
 
-        return super().iter(**kwargs)   
+        return super().iter(**kwargs)

@@ -134,8 +134,8 @@ class User(Profile):
 
 class Question(object):
     def __init__(self, id, text=None, answered=None, public=None,
-                 answer_target=None, explanation_target=None,
-                 answer_viewer=None, explanation_viewer=None):
+                 answer_target=None, explanation_target=None, acceptable_target=None,
+                 answer_viewer=None, explanation_viewer=None, acceptable_viewer=None):
         self._id   = id
         self._text = text
         self._answered = answered
@@ -144,6 +144,8 @@ class Question(object):
         self._v_answer = answer_viewer
         self._t_note   = explanation_target
         self._v_note   = explanation_viewer
+        self._t_accepted = acceptable_target
+        self._v_accepted = acceptable_viewer
 
     ## TODO: find a way to determine the below properties in case they aren't set
 
@@ -170,6 +172,14 @@ class Question(object):
     @property
     def answer_viewer(self):
         return self._v_answer
+
+    @property
+    def accepted_target(self):
+        return self._t_accepted
+
+    @property
+    def accepted_viewer(self):
+        return self._v_accepted
 
     @property
     def explanation_target(self):
