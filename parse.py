@@ -206,7 +206,7 @@ class Questions(PaginatedPage):
             v_explanation = self.find_by_class(answer_viewer, 'note').text.strip()
 
         return {
-            'qid': question_id,
+            'id': question_id,
             'text': question_text,
             'answered': is_answered,
             'public': is_public,

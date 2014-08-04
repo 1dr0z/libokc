@@ -128,11 +128,56 @@ class User(Profile):
     def favorites(self, **kwargs):
         return (Profile(self._session, **data) for data in self._favorites.iter(**kwargs))
 
+    def __str__(self):
+        return '<User {0}>'.format(self._username)
+
 
 class Question(object):
-    def __init__(self, qid, text=None, answered=None):
-        self._id   = qid
+    def __init__(self, id, text=None, answered=None, public=None,
+                 answer_target=None, explanation_target=None,
+                 answer_viewer=None, explanation_viewer=None):
+        self._id   = id
         self._text = text
+        self._answered = answered
+        self._public   = public
+        self._t_answer = answer_target
+        self._v_answer = answer_viewer
+        self._t_note   = explanation_target
+        self._v_note   = explanation_viewer
+
+    ## TODO: find a way to determine the below properties in case they aren't set
+
+    @property
+    def id(self):
+        return self._id
+
+    @property
+    def text(self):
+        return self._text
+
+    @property
+    def answered(self):
+        return self._answered
+
+    @property
+    def public(self):
+        return self._public
+
+    @property
+    def answer_target(self):
+        return self._t_answer
+
+    @property
+    def answer_viewer(self):
+        return self._v_answer
+
+    @property
+    def explanation_target(self):
+        return self._t_note
+
+    @property
+    def explanation_viewer(self):
+        return self._v_note
 
     def __str__(self):
         return '<Question {0}>'.format(self._id)
