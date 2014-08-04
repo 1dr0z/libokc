@@ -6,13 +6,17 @@ import re
 class Page(object):
     """Basic page functionality"""
 
-    def __init__(self, session, url):
-        self._session = session
+    def __init__(self, user, url):
+        self._user    = user
+        self._session = user._session
         self._url     = url
+
+    def get_url(self):
+        return self._url
 
     def get_request(self, **kwargs):
         """Get a PreparedRequest object"""
-        return self._session.get_request('GET', self._url, data=kwargs)
+        return self._session.get_request('GET', self.get_url(), data=kwargs)
 
     def get_response(self, request):
         """Send a PreparedRequest object and return the response"""
@@ -47,9 +51,13 @@ class Page(object):
         """Find all sub-elements by tag_name"""
         return element.xpath(".//{0}".format(tag_name))
 
+    def find_by_xpath(self, element, xpath):
+        """Find the sub-element with an xpath search"""
+        return element.xpath(xpath)[0]
+
     def element_has_class(self, element, class_name):
         """Check whether element has a given class"""
-        return re.match(r'\b{0}\b'.format(class_name), self.element_get_attr(element, 'class', ''))
+        return bool(re.search(r'\b{0}\b'.format(class_name), self.element_get_attr(element, 'class', '')))
 
     def element_get_attr(self, element, attribute, default=None):
         """Get an attribute value from an element"""
@@ -86,17 +94,45 @@ class PaginatedPage(Page):
         except IndexError:
             return False
 
+    def iter_elements(self, element):
+        """Iterate elements / pages by returning elements"""
+        raise NotImplementedError()
+
+    def parse_element(self, element):
+        """Parse useful information from each element"""
+        raise NotImplementedError()
+
+    def iter(self, **kwargs):
+        """Iterate over all favorites, request new pages as needed"""
+        request = self.get_request(**kwargs)
+        while True:
+            # Get list of user elements from page
+            page_elem = self.get_element_from_request(request)
+            elements  = self.iter_elements(page_elem)
+
+            # Iterate over favorites
+            for element in elements:
+                yield self.parse_element(element)
+
+            # Stop iteration when we're out of pages
+            if not self.has_next_page(page_elem):
+                break
+
+            request = self.get_next_request(page_elem)
+            if not request:
+                break
+
 
 class Favorites(PaginatedPage):
-    def __init__(self, session):
-        super().__init__(session, 'https://www.okcupid.com/favorites')
+    def __init__(self, user):
+        super().__init__(user, 'https://www.okcupid.com/favorites')
 
-    def iter_favorite_elements(self, element):
+    def iter_elements(self, element):
         """Iterate over all favorite elements"""
         return (elem for elem in self.find_by_tag(element, 'div')
                 if self.element_has_class(elem, 'user_row_item'))
 
-    def parse_favorite(self, element):
+    def parse_element(self, element):
         """Parse a favorite element into useful data"""
         profile_info  = self.find_by_class(element, 'profile_info')
         fave_name     = self.find_by_class(profile_info, 'name').text
@@ -127,22 +163,55 @@ class Favorites(PaginatedPage):
             'favorite': True,
         }
 
-    def iter(self, **kwargs):
-        """Iterate over all favorites, request new pages as needed"""
-        request = self.get_request(**kwargs)
-        while True:
-            # Get list of user elements from page
-            page_elem = self.get_element_from_request(request)
-            favorites = self.iter_favorite_elements(page_elem)
 
-            # Iterate over favorites
-            for favorite in favorites:
-                yield self.parse_favorite(favorite)
+class Questions(PaginatedPage):
+    """
+    i_care=None, they_care=None, disagree=None,
+    unanswered=None, notes=None, sex=None, dating=None,
+    lifestyle=None, ethics=None, religion=None, other=None
+    """
 
-            # Stop iteration when we're out of pages
-            if not self.has_next_page(page_elem):
-                break
+    def __init__(self, user):
+        super().__init__(user, 'https://www.okcupid.com/profile/{0}/questions')
 
-            request = self.get_next_request(page_elem)
-            if not request:
-                break
+    def get_url(self):
+        """Return the url for the specified user"""
+        return self._url.format(self._user.name)
+
+    def iter_elements(self, element):
+        """Iterate over all question elements"""
+        return (elem for elem in self.find_by_tag(element, 'div')
+                if self.element_has_class(elem, 'question'))
+
+    def parse_element(self, element):
+        """Parse a question element into useful data"""
+        is_answered = not self.element_has_class(element, 'not_answered')
+        is_public   = self.element_has_class(element, 'public')
+        question_id = self.element_get_attr(element, 'data-qid')
+        question_text = self.find_by_class(element, 'qtext').find('p').text.strip()
+
+        t_answer = None
+        v_answer = None
+        t_explanation = None
+        v_explanation = None
+
+        if is_answered and is_public:
+            answer_elems  = self.find_by_class(element, 'answers')
+            answer_target = self.find_by_class(answer_elems, 'target')
+            answer_viewer = self.find_by_class(answer_elems, 'viewer')
+
+            t_answer = self.find_by_class(answer_target, 'text').text.strip()
+            v_answer = self.find_by_class(answer_viewer, 'text').text.strip()
+            t_explanation = self.find_by_class(answer_target, 'note').text.strip()
+            v_explanation = self.find_by_class(answer_viewer, 'note').text.strip()
+
+        return {
+            'qid': question_id,
+            'text': question_text,
+            'answered': is_answered,
+            'public': is_public,
+            'answer_target': t_answer,
+            'answer_viewer': v_answer,
+            'explanation_target': t_explanation,
+            'explanation_viewer': v_explanation,
+        }

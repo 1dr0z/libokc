@@ -46,9 +46,10 @@ class Session(requests.Session):
 
 
 class Profile(object):
-    def __init__(self, userid=None, name=None, age=None,
+    def __init__(self, session, name, userid=None, age=None,
                  location=None, match=None, rating=None,
                  gender=None, favorite=None):
+        self._session = session
         self._id = userid
         self._name = name
         self._age = age
@@ -57,6 +58,7 @@ class Profile(object):
         self._rating = rating
         self._gender = gender
         self._favorite = favorite
+        self._questions = parse.Questions(self)
 
     ## TODO: If the below properties are not set at the time they are accessed, populate all basic profile data
     @property
@@ -91,32 +93,24 @@ class Profile(object):
     def is_favorite(self):
         return self._favorite
 
-
-    ## TODO: write generator to iterate over questions
     def questions(self, **kwargs):
-        """
-        i_care=None, they_care=None, disagree=None,
-        unanswered=None, notes=None, sex=None, dating=None,
-        lifestyle=None, ethics=None, religion=None, other=None
-
-        :param kwargs:
-        :return:
-        """
-        return []
+        return (Question(**data) for data in self._questions.iter(**kwargs))
 
     def __str__(self):
         return '<Profile of {0}>'.format(self._name)
 
 
-class User(object):
+class User(Profile):
     def __init__(self, username, password, session=None, log_in=True):
         if session is None:
             session = Session()
 
+        super().__init__(session, username)
+
         self._session = session
         self._username = username
         self._password = password
-        self._favorites = Favorites(session)
+        self._favorites = parse.Favorites(self)
 
         if log_in:
             self.login()
@@ -132,14 +126,13 @@ class User(object):
             raise AuthenticationError('Could not log in with the credentials provided')
 
     def favorites(self, **kwargs):
-        return self._favorites.iter(**kwargs)
+        return (Profile(self._session, **data) for data in self._favorites.iter(**kwargs))
 
 
-class Favorites(object):
-    def __init__(self, session):
-        self._session = session
-        self._parser  = parse.Favorites(session)
+class Question(object):
+    def __init__(self, qid, text=None, answered=None):
+        self._id   = qid
+        self._text = text
 
-    def iter(self, low=1):
-        return (Profile(**data) for data in self._parser.iter(low=low))
-
+    def __str__(self):
+        return '<Question {0}>'.format(self._id)
