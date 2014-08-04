@@ -259,4 +259,7 @@ class Questions(PaginatedPage):
             del kwargs['they_care']
             kwargs['he_care' if self._user.gender == 'M' else 'she_care'] = True
 
-        return super().iter(**kwargs)
+        # OkCupid uses integer values
+        kwargs = {k: int(v) for k, v in kwargs.items()}
+
+        return super().iter(**kwargs)   
