@@ -1,4 +1,8 @@
-from urllib.parse import parse_qs, urlparse
+try:
+    from urllib.parse import parse_qs, urlparse
+except ImportError:
+    from urlparse import parse_qs, urlparse
+
 from lxml import html
 import re
 
@@ -123,9 +127,14 @@ class PaginatedPage(Page):
                 break
 
 
+class Profile(Page):
+    def __init__(self, user):
+        Page.__init__(self, user, 'https://www.okcupid.com/profile/{0}')
+    
+
 class Favorites(PaginatedPage):
     def __init__(self, user):
-        super().__init__(user, 'https://www.okcupid.com/favorites')
+        PaginatedPage.__init__(self, user, 'https://www.okcupid.com/favorites')
 
     def iter_elements(self, element):
         """Iterate over all favorite elements"""
@@ -172,7 +181,7 @@ class Questions(PaginatedPage):
     """
 
     def __init__(self, user):
-        super().__init__(user, 'https://www.okcupid.com/profile/{0}/questions')
+        PaginatedPage.__init__(self, user, 'https://www.okcupid.com/profile/{0}/questions')
 
     def get_url(self):
         """Return the url for the specified user"""
@@ -270,4 +279,4 @@ class Questions(PaginatedPage):
         # OkCupid uses integer values
         kwargs = {k: int(v) for k, v in kwargs.items()}
 
-        return super().iter(**kwargs)
+        return PaginatedPage.iter(self, **kwargs)

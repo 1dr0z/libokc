@@ -6,7 +6,7 @@ import requests
 
 class Session(requests.Session):
     def __init__(self, delay=3):
-        super().__init__()
+        requests.Session.__init__(self)
         self.delay = delay
         self.timestamp = -delay
 
@@ -40,14 +40,14 @@ class Session(requests.Session):
             pass
 
         self.timestamp = clock()
-        response = super().send(request, **kwargs)
+        response = requests.Session.send(self, request, **kwargs)
         response.raise_for_status()
         return response
 
 
 class Profile(object):
     def __init__(self, session, name, userid=None, age=None,
-                 location=None, match=None, rating=None,
+                 location=None, match=None, enemy=None, rating=None,
                  gender=None, favorite=None):
         self._session = session
         self._id = userid
@@ -55,42 +55,77 @@ class Profile(object):
         self._age = age
         self._location = location
         self._match = match
+        self._enemy = enemy
         self._rating = rating
         self._gender = gender
         self._favorite = favorite
         self._questions = parse.Questions(self)
+        self._profile = parse.Profile(self)
 
-    ## TODO: If the below properties are not set at the time they are accessed, populate all basic profile data
+    def refresh_profile_info(self):
+        pass
+
     @property
     def id(self):
+        if not self._id:
+            self.refresh_profile_info()
+
         return self._id
 
     @property
     def name(self):
+        if not self._name:
+            self.refresh_profile_info()
+
         return self._name
 
     @property
     def age(self):
+        if not self._age:
+            self.refresh_profile_info()
+
         return self._age
 
     @property
     def location(self):
+        if not self._location:
+            self.refresh_profile_info()
+
         return self._location
 
     @property
     def match(self):
+        if not self._match:
+            self.refresh_profile_info()
+
         return self._match
 
     @property
+    def enemy(self):
+        if not self._enemy:
+            self.refresh_profile_info()
+
+        return self._enemy
+
+    @property
     def rating(self):
+        if not self._rating:
+            self.refresh_profile_info()
+
         return self._rating
 
     @property
     def gender(self):
+        if not self._gender:
+            self.refresh_profile_info()
+
         return self._gender
 
     @property
     def is_favorite(self):
+        if not self._favorite:
+            self.refresh_profile_info()
+
         return self._favorite
 
     def questions(self, **kwargs):
@@ -105,7 +140,7 @@ class User(Profile):
         if session is None:
             session = Session()
 
-        super().__init__(session, username)
+        Profile.__init__(self, session, username)
 
         self._session = session
         self._username = username
